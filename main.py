@@ -1,8 +1,69 @@
 import json
-import minecraft_launcher_lib
-import subprocess
 import sys
+from subprocess import Popen
 
+import minecraft_launcher_lib
+import win32api
+# noinspection PyUnresolvedReferences
+import win32con
+import win32gui
+import win32ui
+from PIL import ImageGrab, Image
+from pywinauto.application import Application, WindowSpecification
+from pywinauto.base_wrapper import BaseWrapper
+from pywinauto.timings import Timings
+
+
+def screenshot(w: BaseWrapper, rect=None):
+    control_rectangle = w.rectangle()
+    if not (control_rectangle.width() and control_rectangle.height()):
+        return None
+
+    # PIL is optional so check first
+    if not ImageGrab:
+        print("PIL does not seem to be installed. "
+              "PIL is required for capture_as_image")
+        w.actions.log("PIL does not seem to be installed. "
+                      "PIL is required for capture_as_image")
+        return None
+
+    if rect:
+        control_rectangle = rect
+
+    # get the control rectangle in a way that PIL likes it
+    width = control_rectangle.width()
+    height = control_rectangle.height()
+    left = control_rectangle.left
+    right = control_rectangle.right
+    top = control_rectangle.top
+    bottom = control_rectangle.bottom
+    box = (left, top, right, bottom)
+
+    # check the number of monitors connected
+    # noinspection PyUnresolvedReferences
+    if (sys.platform == 'win32') and (len(win32api.EnumDisplayMonitors()) > 1):
+        hwin = win32gui.GetDesktopWindow()
+        hwin_dc = win32gui.GetWindowDC(hwin)
+        src_dc = win32ui.CreateDCFromHandle(hwin_dc)
+        mem_dc = src_dc.CreateCompatibleDC()
+        bmp = win32ui.CreateBitmap()
+        bmp.CreateCompatibleBitmap(src_dc, width, height)
+        mem_dc.SelectObject(bmp)
+        mem_dc.BitBlt((0, 0), (width, height), src_dc, (left, top), win32con.SRCCOPY)
+
+        bmp_info = bmp.GetInfo()
+        bmp_str = bmp.GetBitmapBits(True)
+        # noinspection SpellCheckingInspection
+        pil_img_obj = Image.frombuffer(
+            'RGB', (bmp_info['bmWidth'], bmp_info['bmHeight']),
+            bmp_str, 'raw', 'BGRX', 0, 1)
+    else:
+        # grab the image and get raw data as a string
+        pil_img_obj = ImageGrab.grab(box)
+    return pil_img_obj
+
+
+# prepare Minecraft
 minecraft_directory = 'D:\\Games\\Minecraft'
 uc = json.loads(open(minecraft_directory + '\\usercache.json', 'r').read())
 lp = json.loads(open(minecraft_directory + '\\launcher_profiles.json', 'r').read())
@@ -19,10 +80,21 @@ minecraft_command: list[str] = (
     minecraft_launcher_lib.command.get_minecraft_command('1.20.6', minecraft_directory, options))
 del uc, lp, options
 
+# start the process and connect to it
+process: Popen = Popen(minecraft_command)
+minecraft: Application = Application().connect(process=process.pid)  # java.exe
 
-prc = subprocess.run(minecraft_command)
-sys.exit(prc.returncode)
-
-# minecraft = Application().start(' '.join(minecraft_command))
-# pywintypes.error: (1471, 'WaitForInputIdle',
-# 'Unable to finish the requested operation because the specified process is not a GUI process.')
+# execute custom commands safely after it is loaded
+Timings.window_find_timeout = 60
+hwnd: WindowSpecification = minecraft.top_window()  # blocks until the window is created
+hwnd.wait('exists enabled visible ready')
+i = 0
+while True:
+    hwnd.set_focus()
+    # noinspection PyTypeChecker
+    screenshot(hwnd).save('screenshot_' + str(i) + '.png')
+    i += 1
+    try:
+        exec(input())
+    except Exception as e:
+        print(e)
