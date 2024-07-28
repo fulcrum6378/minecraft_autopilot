@@ -1,7 +1,7 @@
 import json
 import minecraft_launcher_lib
-
-from pywinauto.application import Application
+import subprocess
+import sys
 
 minecraft_directory = 'D:\\Games\\Minecraft'
 uc = json.loads(open(minecraft_directory + '\\usercache.json', 'r').read())
@@ -19,11 +19,10 @@ minecraft_command: list[str] = (
     minecraft_launcher_lib.command.get_minecraft_command('1.20.6', minecraft_directory, options))
 del uc, lp, options
 
-# import subprocess
-# import sys
-# prc = subprocess.run(minecraft_command)
-# sys.exit(prc.returncode)
 
-minecraft = Application().start(' '.join(minecraft_command))
+prc = subprocess.run(minecraft_command)
+sys.exit(prc.returncode)
+
+# minecraft = Application().start(' '.join(minecraft_command))
 # pywintypes.error: (1471, 'WaitForInputIdle',
 # 'Unable to finish the requested operation because the specified process is not a GUI process.')
