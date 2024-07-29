@@ -1,6 +1,7 @@
 import json
 import sys
 from subprocess import Popen
+from time import sleep
 
 import minecraft_launcher_lib
 import win32api
@@ -11,9 +12,11 @@ import win32ui
 from PIL import ImageGrab, Image
 from pywinauto.application import Application, WindowSpecification
 from pywinauto.base_wrapper import BaseWrapper
+from pywinauto.controls.hwndwrapper import DialogWrapper
 from pywinauto.timings import Timings
 
 
+# noinspection PyShadowingNames
 def screenshot(w: BaseWrapper, rect=None):
     control_rectangle = w.rectangle()
     if not (control_rectangle.width() and control_rectangle.height()):
@@ -27,8 +30,7 @@ def screenshot(w: BaseWrapper, rect=None):
                       "PIL is required for capture_as_image")
         return None
 
-    if rect:
-        control_rectangle = rect
+    if rect: control_rectangle = rect
 
     # get the control rectangle in a way that PIL likes it
     width = control_rectangle.width()
@@ -60,7 +62,8 @@ def screenshot(w: BaseWrapper, rect=None):
     else:
         # grab the image and get raw data as a string
         pil_img_obj = ImageGrab.grab(box)
-    return pil_img_obj
+
+    pil_img_obj.save('screenshot.png')
 
 
 # prepare Minecraft
@@ -84,17 +87,41 @@ del uc, lp, options
 process: Popen = Popen(minecraft_command)
 minecraft: Application = Application().connect(process=process.pid)  # java.exe
 
-# execute custom commands safely after it is loaded
-Timings.window_find_timeout = 60
-hwnd: WindowSpecification = minecraft.top_window()  # blocks until the window is created
-hwnd.wait('exists enabled visible ready')
-i = 0
+# prepare the game
+Timings.slow()
+Timings.window_find_timeout = 80
+window: WindowSpecification = minecraft.top_window()  # blocks until the window is created
+window.wait('ready')
+sleep(5)
+w: DialogWrapper = window.wrapper_object()
+w.set_focus()
+sleep(20)
+w.move_mouse(coords=(435, 235))
+w.click()
+sleep(1)
+w.move_mouse(coords=(435, 175))
+w.click()
+w.move_mouse(coords=(400, 400))
+w.click()
+sleep(90)
+
+
+def enter():
+    global w
+    w.set_focus()
+    w.move_mouse(coords=(435, 160))
+    w.click()
+    sleep(2)
+
+
 while True:
-    hwnd.set_focus()
-    # noinspection PyTypeChecker
-    screenshot(hwnd).save('screenshot_' + str(i) + '.png')
-    i += 1
     try:
         exec(input())
     except Exception as e:
         print(e)
+    # w.set_focus(); screenshot(w)
+    # from pywinauto.win32defines import *
+    # enter(); w.send_chars(VK_LEFT)
+
+    # import pywinauto.mouse as mouse
+    # mouse.move(coords=(435, 265))
