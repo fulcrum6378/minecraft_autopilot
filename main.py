@@ -116,12 +116,14 @@ def enter():
 
 while True:
     try:
-        exec(input())
+        exe = input()
+        enter()
+        exec(exe)
     except Exception as e:
-        print(e)
+        print(str(type(e)) + ':', e)
     # w.set_focus(); screenshot(w)
     # from pywinauto.win32defines import *
-    # enter(); w.send_chars(VK_LEFT)
+    # w.send_keystrokes(VK_LEFT)
 
     # import pywinauto.mouse as mouse
     # mouse.move(coords=(435, 265))
