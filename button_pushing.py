@@ -136,34 +136,12 @@ def send_my_keys(w,
         win32functions.AttachThreadInput(target_thread_id, current_thread_id, False)
 
 
-app = Application(backend="uia").start("notepad.exe")
+app = Application().start("notepad.exe")  # backend="uia"
 dw: DialogWrapper = app.top_window().wrapper_object()
 # dw.set_focus()
-keys: list[KeyAction] = [KeyAction('F', True, False), ]  # KeyAction('U'), KeyAction('C'), KeyAction('K'),
-for k in keys:
-    actions = 1
-    if k.up and k.down: actions = 2
-    inputs = (win32structures.INPUT * actions)()
-
-    for inp in inputs:
-        inp.type = INPUT_KEYBOARD
-        inp.ki.wVk = 0
-        inp.ki.wScan = ord(k.key)
-        inp.ki.dwFlags |= KEYEVENTF_UNICODE
-        # it seems to return 0 every time, but it's required by MSDN specification so call it just in case
-        inp.ki.dwExtraInfo = win32functions.GetMessageExtraInfo()
-    # if we are releasing - then let it up
-    if k.up: inputs[-1].ki.dwFlags |= KEYEVENTF_KEYUP
-
-    num_inserted_events = win32functions.SendInput(len(inputs), ctypes.byref(inputs),
-                                                   ctypes.sizeof(win32structures.INPUT))
-    if num_inserted_events != len(inputs):
-        raise RuntimeError('SendInput() inserted only ' + str(num_inserted_events) +
-                           ' out of ' + str(len(inputs)) + ' keyboard events')
-    time.sleep(.01)
-win32functions.WaitGuiThreadIdle(dw.handle)
 time.sleep(1)
-# send_my_keys(dw.handle, "F")
+# send_my_keys(dw.handle, 'F')
+dw.send_keystrokes('FUCK')
 time.sleep(2)
 # dw.type_keys("%FX")
 win32gui.SendMessage(dw.handle, win32con.WM_CLOSE)
