@@ -3,6 +3,7 @@ import ctypes
 import time
 import warnings
 
+import pyautogui
 # noinspection PyUnresolvedReferences
 import pywintypes
 # noinspection PyUnresolvedReferences
@@ -10,8 +11,6 @@ import win32con
 import win32gui
 from pywinauto import win32functions, Application, keyboard, win32structures
 from pywinauto.controls.hwndwrapper import DialogWrapper
-from pywinauto.keyboard import KeyAction
-from win32.lib.win32con import KEYEVENTF_KEYUP, INPUT_KEYBOARD, KEYEVENTF_UNICODE
 
 
 # open notepad and make it push a button continually...
@@ -136,12 +135,38 @@ def send_my_keys(w,
         win32functions.AttachThreadInput(target_thread_id, current_thread_id, False)
 
 
+KEYEVENTF_KEYDOWN = 0x0000  # Technically this constant doesn't exist in the MS documentation. It's the lack of KEYEVENTF_KEYUP that means pressing the key down.
+KEYEVENTF_KEYUP = 0x0002
+# needsShift = pyautogui.isShiftCharacter(key)
+# mods, vkCode = divmod(keyboardMapping[key], 0x100)
+#
+# for apply_mod, vk_mod in [(mods & 4, 0x12), (mods & 2, 0x11),
+#                           (mods & 1 or needsShift, 0x10)]:  # HANKAKU not supported! mods & 8
+#     if apply_mod:
+#         ctypes.windll.user32.keybd_event(vk_mod, 0, KEYEVENTF_KEYDOWN, 0)
+# ctypes.windll.user32.keybd_event(vkCode, 0, KEYEVENTF_KEYDOWN, 0)
+# for apply_mod, vk_mod in [(mods & 1 or needsShift, 0x10), (mods & 2, 0x11),
+#                           (mods & 4, 0x12)]:  # HANKAKU not supported! mods & 8
+#     if apply_mod:
+#         ctypes.windll.user32.keybd_event(vk_mod, 0, KEYEVENTF_KEYUP, 0)
+
 app = Application().start("notepad.exe")  # backend="uia"
 dw: DialogWrapper = app.top_window().wrapper_object()
 # dw.set_focus()
 time.sleep(1)
 # send_my_keys(dw.handle, 'F')
-dw.send_keystrokes('FUCK')
+# app.UntitledNotepad.type_keys("FUCK-YOU")
+# dw.set_keyboard_focus()
+# dw.send_chars('FUCK')
+# start = time.time()
+# while time.time() - start < 5:
+#    pyautogui.keyDown('a')
+print(divmod(ctypes.windll.user32.VkKeyScanA(ctypes.wintypes.WCHAR('d')), 0x100))
+# `w`=>87, `a`=>65, `s`=>83, `d`=>68
+ctypes.windll.user32.keybd_event(
+    divmod(ctypes.windll.user32.VkKeyScanA(ctypes.wintypes.WCHAR('d')), 0x100)[1], 0, KEYEVENTF_KEYDOWN, 0)
 time.sleep(2)
 # dw.type_keys("%FX")
-win32gui.SendMessage(dw.handle, win32con.WM_CLOSE)
+# win32gui.SendMessage(dw.handle, win32con.WM_CLOSE)
+win32gui.SendMessage(dw.handle, win32con.WM_KEYDOWN, win32con.VK_ESCAPE, 0)
+# dw.close()  # pywinauto.timings.TimeoutError: timed out
