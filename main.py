@@ -104,6 +104,7 @@ w.click()
 w.move_mouse(coords=(400, 400))
 w.click()
 sleep(90)
+print('Listening for user input.....')
 
 
 def enter():
@@ -113,6 +114,10 @@ def enter():
     w.click()
     sleep(2)
 
+import ctypes
+# noinspection PyUnresolvedReferences
+import win32con
+import win32gui
 
 while True:
     try:
