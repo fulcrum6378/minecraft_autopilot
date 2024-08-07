@@ -1,7 +1,7 @@
 import ctypes
 import json
 import sys
-from ctypes.wintypes import LPARAM
+from ctypes.wintypes import LPARAM, POINT, RECT, UINT
 from subprocess import Popen
 from time import sleep
 
@@ -10,12 +10,12 @@ import win32api
 import win32con
 import win32gui
 import win32ui
-from PIL import ImageGrab, Image
+from PIL import Image, ImageGrab
 from pywinauto.application import Application, WindowSpecification
 from pywinauto.controls.hwndwrapper import DialogWrapper
 from pywinauto.timings import Timings
-from pywinauto.win32structures import WINDOWPLACEMENT
-from win32con import WM_MOUSEMOVE, WM_LBUTTONDOWN, WM_LBUTTONUP, VK_LSHIFT, VK_LCONTROL, KEYEVENTF_KEYUP, VK_SPACE
+from win32con import (KEYEVENTF_KEYUP, VK_LCONTROL, VK_LSHIFT, VK_SPACE,
+                      WM_LBUTTONDOWN, WM_LBUTTONUP, WM_RBUTTONDOWN, WM_RBUTTONUP, WM_MOUSEMOVE)
 
 GetWindowPlacement = ctypes.windll.user32.GetWindowPlacement
 ShowWindow = ctypes.windll.user32.ShowWindow
@@ -24,9 +24,20 @@ keybd_event = ctypes.windll.user32.keybd_event
 KEYEVENTF_KEYDOWN = 0x0000
 
 
+class WindowPlacement(ctypes.Structure):
+    _fields_ = [
+        ('length', UINT),
+        ('flags', UINT),
+        ('showCmd', UINT),
+        ('ptMinPosition', POINT),
+        ('ptMaxPosition', POINT),
+        ('rcNormalPosition', RECT),
+    ]
+
+
 def focus():
     global w
-    wp = WINDOWPLACEMENT()
+    wp = WindowPlacement()
     wp.length = ctypes.sizeof(wp)
     ret = GetWindowPlacement(w, ctypes.byref(wp))
     if not ret: raise ctypes.WinError()
@@ -58,7 +69,7 @@ def enter():
 
 
 def look():
-    pass
+    pass  # TODO
 
 
 def move(direction: int, length: int = 5, sneak: bool = False, sprint: bool = False):
@@ -87,12 +98,20 @@ def jump():
     keybd_event(VK_SPACE, 0, KEYEVENTF_KEYUP, 0)
 
 
-def attack():
-    pass
+def attack(length: int = 5):
+    global w
+    PostMessage(w, WM_LBUTTONDOWN, 0, 0)
+    sleep(length)
+    PostMessage(w, WM_LBUTTONUP, 0, 0)
+    sleep(.1)
 
 
-def use():
-    pass
+def use(length: int = 5):
+    global w
+    PostMessage(w, WM_RBUTTONDOWN, 0, 0)
+    sleep(length)
+    PostMessage(w, WM_RBUTTONUP, 0, 0)
+    sleep(.1)
 
 
 def screenshot(rect=None):
@@ -101,13 +120,6 @@ def screenshot(rect=None):
     control_rectangle = w.rectangle()
     if not (control_rectangle.width() and control_rectangle.height()):
         return None
-
-    # PIL is optional so check first
-    if not ImageGrab:
-        print("PIL does not seem to be installed. "
-              "PIL is required for capture_as_image")
-        return None
-
     if rect: control_rectangle = rect
 
     # get the control rectangle in a way that PIL likes it
