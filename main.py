@@ -1,3 +1,4 @@
+import ctypes
 import json
 import sys
 from subprocess import Popen
@@ -11,13 +12,45 @@ import win32gui
 import win32ui
 from PIL import ImageGrab, Image
 from pywinauto.application import Application, WindowSpecification
-from pywinauto.base_wrapper import BaseWrapper
 from pywinauto.controls.hwndwrapper import DialogWrapper
 from pywinauto.timings import Timings
 
+KEYEVENTF_KEYDOWN = 0x0000
 
-# noinspection PyShadowingNames
-def screenshot(w: BaseWrapper, rect=None):
+
+def enter():
+    global w
+    w.set_focus()
+    w.move_mouse(coords=(435, 160))
+    w.click()
+    sleep(2)
+
+
+def move(direction: int, length: int = 5, sit: bool = False):
+    key = {
+        0: 87,  # W
+        1: 68,  # D
+        2: 83,  # S
+        3: 65,  # A
+    }[direction]
+    if sit:
+        ctypes.windll.user32.keybd_event(win32con.VK_LSHIFT, 0, KEYEVENTF_KEYDOWN, 0)
+    ctypes.windll.user32.keybd_event(key, 0, KEYEVENTF_KEYDOWN, 0)
+    sleep(length)
+    ctypes.windll.user32.keybd_event(key, 0, win32con.KEYEVENTF_KEYUP, 0)
+    if sit:
+        ctypes.windll.user32.keybd_event(win32con.VK_LSHIFT, 0, win32con.KEYEVENTF_KEYUP, 0)
+
+
+def jump():
+    ctypes.windll.user32.keybd_event(win32con.VK_SPACE, 0, KEYEVENTF_KEYDOWN, 0)
+    sleep(.5)  # it won't work if you release the key immediately!
+    ctypes.windll.user32.keybd_event(win32con.VK_SPACE, 0, win32con.KEYEVENTF_KEYUP, 0)
+
+
+def screenshot(rect=None):
+    global w
+    w.set_focus()
     control_rectangle = w.rectangle()
     if not (control_rectangle.width() and control_rectangle.height()):
         return None
@@ -103,21 +136,8 @@ w.move_mouse(coords=(435, 175))
 w.click()
 w.move_mouse(coords=(400, 400))
 w.click()
-sleep(90)
+sleep(60)
 print('Listening for user input.....')
-
-
-def enter():
-    global w
-    w.set_focus()
-    w.move_mouse(coords=(435, 160))
-    w.click()
-    sleep(2)
-
-import ctypes
-# noinspection PyUnresolvedReferences
-import win32con
-import win32gui
 
 while True:
     try:
@@ -126,9 +146,6 @@ while True:
         exec(exe)
     except Exception as e:
         print(str(type(e)) + ':', e)
-    # w.set_focus(); screenshot(w)
-    # from pywinauto.win32defines import *
-    # w.send_keystrokes(VK_LEFT)
 
     # import pywinauto.mouse as mouse
     # mouse.move(coords=(435, 265))
