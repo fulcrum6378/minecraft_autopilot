@@ -1,12 +1,12 @@
 import ctypes
 import json
 import sys
+from ctypes.wintypes import LPARAM
 from subprocess import Popen
 from time import sleep
 
 import minecraft_launcher_lib
 import win32api
-# noinspection PyUnresolvedReferences
 import win32con
 import win32gui
 import win32ui
@@ -14,43 +14,90 @@ from PIL import ImageGrab, Image
 from pywinauto.application import Application, WindowSpecification
 from pywinauto.controls.hwndwrapper import DialogWrapper
 from pywinauto.timings import Timings
+from pywinauto.win32structures import WINDOWPLACEMENT
+from win32con import WM_MOUSEMOVE, WM_LBUTTONDOWN, WM_LBUTTONUP, VK_LSHIFT, VK_LCONTROL, KEYEVENTF_KEYUP, VK_SPACE
 
+GetWindowPlacement = ctypes.windll.user32.GetWindowPlacement
+ShowWindow = ctypes.windll.user32.ShowWindow
+PostMessage = ctypes.windll.user32.PostMessageW
+keybd_event = ctypes.windll.user32.keybd_event
 KEYEVENTF_KEYDOWN = 0x0000
 
 
-def enter():
+def focus():
     global w
-    w.set_focus()
-    w.move_mouse(coords=(435, 160))
-    w.click()
+    wp = WINDOWPLACEMENT()
+    wp.length = ctypes.sizeof(wp)
+    ret = GetWindowPlacement(w, ctypes.byref(wp))
+    if not ret: raise ctypes.WinError()
+    if wp.showCmd == win32con.SW_SHOWMINIMIZED:
+        ShowWindow(w,
+                   win32con.SW_MAXIMIZE if wp.flags & win32con.WPF_RESTORETOMAXIMIZED == win32con.WPF_RESTORETOMAXIMIZED
+                   else win32con.SW_RESTORE)
+    else:
+        win32gui.ShowWindow(w.handle, win32con.SW_SHOW)
+    win32gui.SetForegroundWindow(w.handle)
+    sleep(.06)
+
+
+def click(x: int = 0, y: int = 0):
+    global w
+    if x != 0 or y != 0:
+        PostMessage(w, WM_MOUSEMOVE, 0, LPARAM(((y & 0xFFFF) << 16) | (x & 0xFFFF)))
+        sleep(.01)
+    PostMessage(w, WM_LBUTTONDOWN, 0, 0)
+    sleep(.01)
+    PostMessage(w, WM_LBUTTONUP, 0, 0)
+    sleep(.1)
+
+
+def enter():
+    focus()
+    click(435, 160)
     sleep(2)
 
 
-def move(direction: int, length: int = 5, sit: bool = False):
+def look():
+    pass
+
+
+def move(direction: int, length: int = 5, sneak: bool = False, sprint: bool = False):
     key = {
         0: 87,  # W
         1: 68,  # D
         2: 83,  # S
         3: 65,  # A
     }[direction]
-    if sit:
-        ctypes.windll.user32.keybd_event(win32con.VK_LSHIFT, 0, KEYEVENTF_KEYDOWN, 0)
-    ctypes.windll.user32.keybd_event(key, 0, KEYEVENTF_KEYDOWN, 0)
+    if sneak:
+        keybd_event(VK_LSHIFT, 0, KEYEVENTF_KEYDOWN, 0)
+    if sprint:
+        keybd_event(VK_LCONTROL, 0, KEYEVENTF_KEYDOWN, 0)
+    keybd_event(key, 0, KEYEVENTF_KEYDOWN, 0)
     sleep(length)
-    ctypes.windll.user32.keybd_event(key, 0, win32con.KEYEVENTF_KEYUP, 0)
-    if sit:
-        ctypes.windll.user32.keybd_event(win32con.VK_LSHIFT, 0, win32con.KEYEVENTF_KEYUP, 0)
+    keybd_event(key, 0, KEYEVENTF_KEYUP, 0)
+    if sneak:
+        keybd_event(VK_LSHIFT, 0, KEYEVENTF_KEYUP, 0)
+    if sprint:
+        keybd_event(VK_LCONTROL, 0, KEYEVENTF_KEYUP, 0)
 
 
 def jump():
-    ctypes.windll.user32.keybd_event(win32con.VK_SPACE, 0, KEYEVENTF_KEYDOWN, 0)
+    keybd_event(VK_SPACE, 0, KEYEVENTF_KEYDOWN, 0)
     sleep(.5)  # it won't work if you release the key immediately!
-    ctypes.windll.user32.keybd_event(win32con.VK_SPACE, 0, win32con.KEYEVENTF_KEYUP, 0)
+    keybd_event(VK_SPACE, 0, KEYEVENTF_KEYUP, 0)
+
+
+def attack():
+    pass
+
+
+def use():
+    pass
 
 
 def screenshot(rect=None):
     global w
-    w.set_focus()
+    focus()
     control_rectangle = w.rectangle()
     if not (control_rectangle.width() and control_rectangle.height()):
         return None
@@ -59,8 +106,6 @@ def screenshot(rect=None):
     if not ImageGrab:
         print("PIL does not seem to be installed. "
               "PIL is required for capture_as_image")
-        w.actions.log("PIL does not seem to be installed. "
-                      "PIL is required for capture_as_image")
         return None
 
     if rect: control_rectangle = rect
@@ -127,15 +172,12 @@ window: WindowSpecification = minecraft.top_window()  # blocks until the window 
 window.wait('ready')
 sleep(5)
 w: DialogWrapper = window.wrapper_object()
-w.set_focus()
-sleep(20)
-w.move_mouse(coords=(435, 235))
-w.click()
+sleep(15)
+focus()
+click(435, 235)
 sleep(1)
-w.move_mouse(coords=(435, 175))
-w.click()
-w.move_mouse(coords=(400, 400))
-w.click()
+click(435, 175)
+click(400, 400)
 sleep(60)
 print('Listening for user input.....')
 
@@ -146,6 +188,3 @@ while True:
         exec(exe)
     except Exception as e:
         print(str(type(e)) + ':', e)
-
-    # import pywinauto.mouse as mouse
-    # mouse.move(coords=(435, 265))
