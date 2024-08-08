@@ -48,6 +48,7 @@ def focus():
     else:
         win32gui.ShowWindow(w.handle, win32con.SW_SHOW)
     win32gui.SetForegroundWindow(w.handle)
+    # FIXME <class 'pywintypes.error'>: (6, 'SetForegroundWindow', 'The handle is invalid.')
     sleep(.06)
 
 
@@ -69,6 +70,8 @@ def enter():
 
 
 def look():
+    # WM_MOUSEMOVE, WM_LBUTTONDOWN, WM_LBUTTONUP and not even w.drag_mouse() work here!
+    # cur: tuple[int, int] = win32gui.GetCursorPos()
     pass  # TODO
 
 
@@ -190,7 +193,7 @@ click(435, 235)
 sleep(1)
 click(435, 175)
 click(400, 400)
-sleep(60)
+sleep(45)
 print('Listening for user input.....')
 
 while True:

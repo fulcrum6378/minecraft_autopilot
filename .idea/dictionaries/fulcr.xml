@@ -4,6 +4,8 @@
       <w>fulcr</w>
       <w>keybd</w>
       <w>keyeventf</w>
+      <w>lbuttondown</w>
+      <w>lbuttonup</w>
       <w>lcontrol</w>
       <w>returncode</w>
     </words>
