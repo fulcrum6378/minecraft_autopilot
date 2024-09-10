@@ -72,6 +72,9 @@ def enter():
 def look():
     # WM_MOUSEMOVE, WM_LBUTTONDOWN, WM_LBUTTONUP and not even w.drag_mouse() work here!
     # cur: tuple[int, int] = win32gui.GetCursorPos()
+    # for i in range(100):
+    #    PostMessage(w, WM_MOUSEMOVE, 0, LPARAM(((i & 0xFFFF) << 16) | (i & 0xFFFF)))
+    #    sleep(.01)
     pass  # TODO
 
 
